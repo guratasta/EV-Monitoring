@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EV Tracking Advanced</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { margin:0; padding:0; }
+    #map { height: 100vh; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      z-index: 1000;
+      font-size: 14px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+<div id="info">
+  Status: - <br>
+  Jarak: 0 km
+</div>
+
+<script>
+// ================= INIT =================
+var map = L.map('map').setView([-7.8, 110.36], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+var polyline = L.polyline([], {color: 'red', weight: 4}).addTo(map);
+var marker = L.marker([-7.8, 110.36]).addTo(map);
+
+// ================= VARIABLE =================
+let lastPoint = null;
+let totalDistance = 0;
+
+// ================= HITUNG JARAK =================
+function getDistance(p1, p2) {
+  let R = 6371; // km
+  let dLat = (p2[0] - p1[0]) * Math.PI / 180;
+  let dLon = (p2[1] - p1[1]) * Math.PI / 180;
+
+  let a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(p1[0] * Math.PI / 180) *
+    Math.cos(p2[0] * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+
+  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// ================= UPDATE =================
+async function updateMap() {
+  try {
+    const response = await fetch("https://api.thingspeak.com/channels/3317591/feeds.json?results=50");
+    const data = await response.json();
+
+    let path = [];
+
+    data.feeds.forEach(d => {
+      if (d.field5 && d.field6) {
+        path.push([
+          parseFloat(d.field5),
+          parseFloat(d.field6)
+        ]);
+      }
+    });
+
+    if (path.length === 0) return;
+
+    let current = path[path.length - 1];
+
+    // ================= STATUS =================
+    let status = "STOP";
+
+    if (lastPoint) {
+      let dist = getDistance(lastPoint, current);
+
+      if (dist > 0.005) { // > 5 meter
+        status = "JALAN";
+        totalDistance += dist;
+      }
+    }
+
+    lastPoint = current;
+
+    // ================= UPDATE MAP =================
+    polyline.setLatLngs(path);
+    marker.setLatLng(current);
+    map.setView(current, 18);
+
+    // ================= UPDATE INFO =================
+    document.getElementById("info").innerHTML =
+      "Status: " + status + "<br>" +
+      "Jarak: " + totalDistance.toFixed(3) + " km";
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ================= REALTIME =================
+updateMap();
+setInterval(updateMap, 5000);
+
+</script>
+
+</body>
+</html>
