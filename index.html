@@ -5,12 +5,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Leaflet CDN STABIL -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     body { margin:0; padding:0; }
     #map { height: 100vh; }
+
     #info {
       position: absolute;
       top: 10px;
@@ -21,19 +23,37 @@
       font-size: 14px;
       border-radius: 5px;
     }
+
+    #toggleFollow {
+      position:absolute;
+      top:10px;
+      right:10px;
+      z-index:1000;
+      padding:10px;
+      background:white;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
   </style>
 </head>
 
 <body>
 
 <div id="map"></div>
+
 <div id="info">
   Status: - <br>
   Jarak: 0 km
 </div>
 
+<button id="toggleFollow">
+  Auto Follow: ON
+</button>
+
 <script>
-// ================= INIT =================
+
+// ================= INIT MAP =================
 var map = L.map('map').setView([-7.8, 110.36], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -46,10 +66,17 @@ var marker = L.marker([-7.8, 110.36]).addTo(map);
 // ================= VARIABLE =================
 let lastPoint = null;
 let totalDistance = 0;
+let autoFollow = true;
+
+// ================= TOMBOL AUTO FOLLOW =================
+document.getElementById("toggleFollow").onclick = function() {
+  autoFollow = !autoFollow;
+  this.innerText = "Auto Follow: " + (autoFollow ? "ON" : "OFF");
+};
 
 // ================= HITUNG JARAK =================
 function getDistance(p1, p2) {
-  let R = 6371; // km
+  let R = 6371;
   let dLat = (p2[0] - p1[0]) * Math.PI / 180;
   let dLon = (p2[1] - p1[1]) * Math.PI / 180;
 
@@ -61,6 +88,31 @@ function getDistance(p1, p2) {
 
   let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
+}
+
+// ================= FILTER GPS =================
+function filterGPS(path) {
+  let filtered = [];
+  let threshold = 0.0003;
+
+  path.forEach((p, i) => {
+    if (i === 0) {
+      filtered.push(p);
+    } else {
+      let prev = filtered[filtered.length - 1];
+
+      let dist = Math.sqrt(
+        Math.pow(p[0] - prev[0], 2) +
+        Math.pow(p[1] - prev[1], 2)
+      );
+
+      if (dist > threshold) {
+        filtered.push(p);
+      }
+    }
+  });
+
+  return filtered;
 }
 
 // ================= UPDATE =================
@@ -82,6 +134,8 @@ async function updateMap() {
 
     if (path.length === 0) return;
 
+    path = filterGPS(path);
+
     let current = path[path.length - 1];
 
     // ================= STATUS =================
@@ -90,7 +144,7 @@ async function updateMap() {
     if (lastPoint) {
       let dist = getDistance(lastPoint, current);
 
-      if (dist > 0.005) { // > 5 meter
+      if (dist > 0.003) { // 3 meter
         status = "JALAN";
         totalDistance += dist;
       }
@@ -101,9 +155,26 @@ async function updateMap() {
     // ================= UPDATE MAP =================
     polyline.setLatLngs(path);
     marker.setLatLng(current);
-    map.setView(current, 18);
 
-    // ================= UPDATE INFO =================
+    // Marker warna
+    if (status === "JALAN") {
+      marker.setIcon(new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        iconSize: [32, 32]
+      }));
+    } else {
+      marker.setIcon(new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        iconSize: [32, 32]
+      }));
+    }
+
+    // AUTO FOLLOW
+    if (autoFollow) {
+      map.setView(current, map.getZoom());
+    }
+
+    // INFO PANEL
     document.getElementById("info").innerHTML =
       "Status: " + status + "<br>" +
       "Jarak: " + totalDistance.toFixed(3) + " km";
