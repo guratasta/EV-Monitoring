@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>GPS Tracker - ESP32 ThingSpeak</title>
+    <title>ESP32 GPS Tracker - EV 002</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -18,242 +18,309 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
+            background: #0f0f1a;
             color: #eee;
-            padding: 10px;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 15px;
         }
         
+        /* Header */
         .header {
-            text-align: center;
-            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             background: linear-gradient(135deg, #16213e, #0f3460);
+            padding: 12px 20px;
             border-radius: 15px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
+            font-size: 1.3rem;
         }
         
-        .header p {
-            font-size: 0.85rem;
-            opacity: 0.8;
-        }
-        
-        #map {
-            height: 450px;
-            border-radius: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            border: 2px solid #0f3460;
-        }
-        
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .card {
-            background: #16213e;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        .card .label {
+        .header h1 span {
             font-size: 0.8rem;
             opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
         
-        .card .value {
-            font-size: 1.6rem;
-            font-weight: bold;
-            margin-top: 8px;
-        }
-        
-        .card .unit {
-            font-size: 0.8rem;
-            opacity: 0.6;
-        }
-        
-        .soc-bar {
-            background: #0f3460;
-            border-radius: 20px;
-            height: 8px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .soc-fill {
-            background: linear-gradient(90deg, #00d4ff, #00ff88);
-            width: 0%;
-            height: 100%;
-            transition: width 0.3s ease;
-            border-radius: 20px;
-        }
-        
-        .relay-panel {
-            background: #16213e;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        
-        .relay-status {
-            display: inline-block;
-            padding: 8px 20px;
-            border-radius: 25px;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        
-        .status-normal {
-            background: #00ff8844;
-            color: #00ff88;
-            border: 1px solid #00ff88;
-        }
-        
-        .status-cutoff {
-            background: #ff444444;
-            color: #ff4444;
-            border: 1px solid #ff4444;
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .btn {
-            padding: 12px 30px;
-            font-size: 1rem;
-            font-weight: bold;
+            padding: 8px 16px;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            margin: 0 8px;
-            transition: transform 0.2s, opacity 0.2s;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+        
+        .btn-secondary {
+            background: #0f3460;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ff4444;
+            color: white;
         }
         
         .btn:hover {
             transform: scale(1.02);
         }
         
-        .btn-normal {
+        .btn-active {
             background: #00ff88;
             color: #1a1a2e;
+            box-shadow: 0 0 10px #00ff88;
         }
         
-        .btn-cutoff {
-            background: #ff4444;
-            color: white;
+        .btn-inactive {
+            background: #444;
+            color: #aaa;
         }
         
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+        /* Map */
+        #map {
+            height: 450px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #0f3460;
         }
         
-        .info-text {
-            background: #0f0f1a;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 0.75rem;
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: #16213e;
+            padding: 12px;
+            border-radius: 12px;
             text-align: center;
-            font-family: monospace;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .stat-unit {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        
+        /* Gauge Cards */
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .gauge-card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        
+        .gauge-title {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+        
+        .gauge-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            background: #0f3460;
+            border-radius: 20px;
+            height: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Relay Panel */
+        .relay-panel {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .relay-status {
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .status-normal {
+            background: #00ff8822;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+        
+        .status-cutoff {
+            background: #ff444422;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+        
+        .relay-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        /* Warning */
+        .warning {
+            background: #ff444422;
+            border-left: 4px solid #ff4444;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            margin-top: 10px;
         }
         
         .last-update {
             text-align: center;
             font-size: 0.7rem;
+            opacity: 0.5;
             margin-top: 10px;
-            opacity: 0.6;
+        }
+        
+        /* Tooltip custom */
+        .distance-tooltip {
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
         }
         
         @media (max-width: 600px) {
-            .card .value {
-                font-size: 1.2rem;
+            .stat-value {
+                font-size: 1rem;
+            }
+            .gauge-value {
+                font-size: 1.4rem;
             }
             .btn {
-                padding: 8px 20px;
-                margin: 5px;
+                padding: 6px 12px;
+                font-size: 0.8rem;
             }
             #map {
                 height: 350px;
             }
         }
-        
-        .vehicle-marker {
-            background: #ff4444;
-            border: 3px solid white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 0 10px rgba(255,68,68,0.8);
-        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>🚗 ESP32 GPS Tracker</h1>
-            <p>Real-time monitoring via ThingSpeak</p>
+            <h1>🚗 EV 002 GPS Tracker <span>| ThingSpeak + ESP32</span></h1>
+            <div class="btn-group">
+                <button id="followBtn" class="btn btn-primary">📍 Auto Follow: ON</button>
+                <button id="resetBtn" class="btn btn-secondary">🎯 Reset Peta</button>
+            </div>
         </div>
         
-        <!-- Peta -->
+        <!-- Map -->
         <div id="map"></div>
         
-        <!-- Dashboard Cards -->
-        <div class="dashboard">
-            <div class="card">
-                <div class="label">📍 Latitude</div>
-                <div class="value" id="lat">---</div>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">📍 Latitude</div>
+                <div class="stat-value" id="lat">---</div>
             </div>
-            <div class="card">
-                <div class="label">📍 Longitude</div>
-                <div class="value" id="lng">---</div>
+            <div class="stat-card">
+                <div class="stat-label">📍 Longitude</div>
+                <div class="stat-value" id="lng">---</div>
             </div>
-            <div class="card">
-                <div class="label">🔋 Tegangan</div>
-                <div class="value" id="voltage">--- <span class="unit">V</span></div>
+            <div class="stat-card">
+                <div class="stat-label">⚡ Kecepatan</div>
+                <div class="stat-value" id="speed">--- <span class="stat-unit">km/h</span></div>
             </div>
-            <div class="card">
-                <div class="label">⚡ Arus</div>
-                <div class="value" id="current">--- <span class="unit">A</span></div>
+            <div class="stat-card">
+                <div class="stat-label">📏 Jarak Total</div>
+                <div class="stat-value" id="distance">--- <span class="stat-unit">km</span></div>
             </div>
-            <div class="card">
-                <div class="label">📊 State of Charge</div>
-                <div class="value" id="soc">--- <span class="unit">%</span></div>
-                <div class="soc-bar"><div class="soc-fill" id="socFill"></div></div>
-            </div>
-            <div class="card">
-                <div class="label">📏 Jarak Total</div>
-                <div class="value" id="distance">--- <span class="unit">km</span></div>
+            <div class="stat-card">
+                <div class="stat-label">⚡ Daya</div>
+                <div class="stat-value" id="power">--- <span class="stat-unit">Watt</span></div>
             </div>
         </div>
         
-        <!-- Relay Control Panel -->
+        <!-- Gauge Grid -->
+        <div class="gauge-grid">
+            <div class="gauge-card">
+                <div class="gauge-title">🔋 Tegangan Baterai</div>
+                <div class="gauge-value" id="voltage">--- <span class="stat-unit">V</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="voltFill"></div></div>
+            </div>
+            <div class="gauge-card">
+                <div class="gauge-title">⚡ Arus</div>
+                <div class="gauge-value" id="current">--- <span class="stat-unit">A</span></div>
+            </div>
+            <div class="gauge-card">
+                <div class="gauge-title">📊 State of Charge (SOC)</div>
+                <div class="gauge-value" id="soc">--- <span class="stat-unit">%</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="socFill"></div></div>
+                <div id="socWarning" class="warning" style="display: none;">⚠️ SOC rendah! Segera charge baterai.</div>
+            </div>
+        </div>
+        
+        <!-- Relay Panel -->
         <div class="relay-panel">
-            <div class="relay-status" id="relayStatus">⚪ Memuat status...</div>
-            <div>
-                <button class="btn btn-normal" id="btnNormal" onclick="sendRelayCommand(0)">🔋 NORMAL</button>
-                <button class="btn btn-cutoff" id="btnCutoff" onclick="sendRelayCommand(1)">⚠️ CUT OFF</button>
+            <div id="relayStatus" class="relay-status status-normal">✅ STATUS: NORMAL</div>
+            <div class="relay-buttons">
+                <button id="btnNormal" class="btn btn-primary">🔋 NORMAL</button>
+                <button id="btnCutoff" class="btn btn-danger">⚠️ CUT OFF</button>
             </div>
-            <div class="info-text" style="margin-top: 12px;">
-                💡 <strong>Catatan:</strong> Perintah akan dieksekusi ESP32 dalam 5-15 detik
-            </div>
-        </div>
-        
-        <div class="last-update" id="lastUpdate">
-            Terakhir update: --:--:--
+            <div class="last-update" id="lastUpdate">Terakhir update: --:--:--</div>
         </div>
     </div>
 
@@ -266,27 +333,31 @@
         const WRITE_API_KEY = "WE3FE1YMTHG8RKS9";
         
         // ============================================
-        // INISIALISASI PETA
+        // INISIALISASI PETA (ZOOM 19)
         // ============================================
-        var map = L.map('map').setView([-6.2, 106.8], 13);
+        var map = L.map('map').setView([-7.82364, 110.39971], 19);
         
-        // Tile layer OpenStreetMap
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        // Tile layer (gelap, cocok dengan tema)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 20
         }).addTo(map);
         
-        // Marker kustom
-        var vehicleIcon = L.divIcon({
-            html: '<div style="background: #ff4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(255,68,68,0.8);"></div>',
-            iconSize: [30, 30],
-            className: 'custom-marker'
-        });
-        
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
         var currentMarker = null;
         var routeLine = null;
-        var routePoints = [];
+        var autoFollow = true;  // DEFAULT ON
+        var historyPoints = [];
+        
+        // Icon marker kustom
+        var vehicleIcon = L.divIcon({
+            html: '<div style="background: #00ff88; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #00ff88;"></div>',
+            iconSize: [26, 26],
+            className: 'vehicle-marker'
+        });
         
         // ============================================
         // AMBIL DATA DARI THINGSPEAK
@@ -300,25 +371,25 @@
                 return {
                     lat: parseFloat(data.field1),
                     lng: parseFloat(data.field2),
-                    voltage: parseFloat(data.field3).toFixed(1),
-                    current: parseFloat(data.field4).toFixed(2),
-                    soc: parseFloat(data.field5).toFixed(0),
+                    voltage: parseFloat(data.field3),
+                    current: parseFloat(data.field4),
+                    soc: parseFloat(data.field5),
                     relayStatus: parseInt(data.field7),
-                    distance: parseFloat(data.field8).toFixed(2),
+                    distance: parseFloat(data.field8),
                     createdAt: data.created_at
                 };
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetch data:', error);
                 return null;
             }
         }
         
         // ============================================
-        // AMBIL DATA HISTORY UNTUK RUTE
+        // AMBIL HISTORY UNTUK GARIS TRACK
         // ============================================
         async function fetchHistory() {
             try {
-                const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=100`;
+                const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=200`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
@@ -332,85 +403,138 @@
                 });
                 return points;
             } catch (error) {
-                console.error('Error fetching history:', error);
+                console.error('Error fetch history:', error);
                 return [];
             }
         }
         
         // ============================================
-        // UPDATE TAMPILAN
+        // UPDATE GARIS TRACK (WARNA HIJAU)
+        // ============================================
+        async function updateRoute() {
+            const points = await fetchHistory();
+            if (points.length > 1) {
+                if (routeLine) {
+                    routeLine.setLatLngs(points);
+                } else {
+                    routeLine = L.polyline(points, {
+                        color: '#00ff88',
+                        weight: 4,
+                        opacity: 0.9,
+                        smoothFactor: 1,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                    
+                    // Tambahkan tooltip jarak total (akan diupdate nanti)
+                    const totalDist = document.getElementById('distance').innerText;
+                    routeLine.bindTooltip(`📏 Total Jarak: ${totalDist} km`, { 
+                        permanent: false, 
+                        direction: 'top',
+                        className: 'distance-tooltip'
+                    });
+                }
+            }
+        }
+        
+        // ============================================
+        // UPDATE DASHBOARD
         // ============================================
         async function updateDashboard() {
             const data = await fetchData();
             if (!data) return;
             
-            // Update cards
+            // Hitung Daya (Watt = Volt × Arus)
+            const power = (data.voltage * data.current).toFixed(1);
+            
+            // Update stat cards
             document.getElementById('lat').innerHTML = data.lat.toFixed(6);
             document.getElementById('lng').innerHTML = data.lng.toFixed(6);
-            document.getElementById('voltage').innerHTML = `${data.voltage} <span class="unit">V</span>`;
-            document.getElementById('current').innerHTML = `${data.current} <span class="unit">A</span>`;
-            document.getElementById('soc').innerHTML = `${data.soc} <span class="unit">%</span>`;
-            document.getElementById('distance').innerHTML = `${data.distance} <span class="unit">km</span>`;
+            document.getElementById('distance').innerHTML = `${data.distance.toFixed(2)} <span class="stat-unit">km</span>`;
+            document.getElementById('power').innerHTML = `${power} <span class="stat-unit">W</span>`;
+            document.getElementById('voltage').innerHTML = `${data.voltage.toFixed(1)} <span class="stat-unit">V</span>`;
+            document.getElementById('current').innerHTML = `${data.current.toFixed(2)} <span class="stat-unit">A</span>`;
+            document.getElementById('soc').innerHTML = `${data.soc.toFixed(0)} <span class="stat-unit">%</span>`;
             
-            // Update SOC bar
+            // Update kecepatan (dari GPS, tidak ada di ThingSpeak? Gunakan perkiraan dari perubahan posisi)
+            // Karena field 9 tidak ada, kita skip atau estimasi
+            document.getElementById('speed').innerHTML = `--- <span class="stat-unit">km/h</span>`;
+            
+            // Progress bars
+            const voltPercent = (data.voltage / 84) * 100;
+            document.getElementById('voltFill').style.width = `${Math.min(voltPercent, 100)}%`;
             document.getElementById('socFill').style.width = `${data.soc}%`;
             
-            // Update relay status
+            // SOC Warning
+            const warning = document.getElementById('socWarning');
+            if (data.soc < 20) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+            
+            // Relay status
             const relayDiv = document.getElementById('relayStatus');
             if (data.relayStatus === 1) {
                 relayDiv.innerHTML = '⚠️ STATUS: CUT OFF (Relay Aktif)';
                 relayDiv.className = 'relay-status status-cutoff';
             } else {
-                relayDiv.innerHTML = '✅ STATUS: NORMAL (Relak Nonaktif)';
+                relayDiv.innerHTML = '✅ STATUS: NORMAL (Relay Nonaktif)';
                 relayDiv.className = 'relay-status status-normal';
             }
             
-            // Update last update time
+            // Last update
             if (data.createdAt) {
                 const date = new Date(data.createdAt);
                 document.getElementById('lastUpdate').innerHTML = `Terakhir update: ${date.toLocaleTimeString('id-ID')}`;
             }
             
-            // Update marker peta jika koordinat valid
-            if (data.lat !== 0 && data.lng !== 0 && !isNaN(data.lat)) {
+            // Update marker peta
+            if (data.lat !== 0 && !isNaN(data.lat)) {
                 if (currentMarker) {
                     currentMarker.setLatLng([data.lat, data.lng]);
+                    currentMarker.bindPopup(`
+                        <b>📍 EV 002</b><br>
+                        🔋 ${data.voltage.toFixed(1)} V | 📊 ${data.soc.toFixed(0)}%<br>
+                        ⚡ ${data.current.toFixed(2)} A | 💡 ${power} Watt<br>
+                        📏 ${data.distance.toFixed(2)} km<br>
+                        🕐 ${new Date(data.createdAt).toLocaleTimeString('id-ID')}
+                    `);
                 } else {
                     currentMarker = L.marker([data.lat, data.lng], { icon: vehicleIcon })
                         .addTo(map)
                         .bindPopup(`
-                            <b>📍 Lokasi Terkini</b><br>
-                            🔋 ${data.voltage} V | 📊 ${data.soc}%<br>
-                            ⚡ ${data.current} A | 📏 ${data.distance} km<br>
-                            🕐 ${new Date(data.createdAt).toLocaleTimeString('id-ID')}
+                            <b>📍 EV 002</b><br>
+                            🔋 ${data.voltage.toFixed(1)} V | 📊 ${data.soc.toFixed(0)}%<br>
+                            ⚡ ${data.current.toFixed(2)} A | 💡 ${power} Watt<br>
+                            📏 ${data.distance.toFixed(2)} km
                         `);
                 }
                 
-                // Pindahkan peta ke lokasi terbaru (optional)
-                map.setView([data.lat, data.lng], 15);
-                currentMarker.openPopup();
+                // Auto follow jika aktif
+                if (autoFollow) {
+                    map.setView([data.lat, data.lng], 19);
+                }
             }
             
-            // Update rute perjalanan
-            const historyPoints = await fetchHistory();
-            if (historyPoints.length > 1) {
-                if (routeLine) {
-                    routeLine.setLatLngs(historyPoints);
-                } else {
-                    routeLine = L.polyline(historyPoints, {
-                        color: '#00d4ff',
-                        weight: 3,
-                        opacity: 0.8,
-                        smoothFactor: 1
-                    }).addTo(map);
-                }
+            // Update garis track
+            await updateRoute();
+            
+            // Update tooltip jarak di route
+            if (routeLine) {
+                routeLine.unbindTooltip();
+                routeLine.bindTooltip(`📏 Total Jarak: ${data.distance.toFixed(2)} km`, { 
+                    permanent: false, 
+                    direction: 'top',
+                    className: 'distance-tooltip'
+                });
             }
         }
         
         // ============================================
         // KIRIM PERINTAH RELAY
         // ============================================
-        var isSending = false;
+        let isSending = false;
         
         async function sendRelayCommand(command) {
             if (isSending) {
@@ -419,13 +543,8 @@
             }
             
             isSending = true;
-            
-            // Disable buttons sementara
             document.getElementById('btnNormal').disabled = true;
             document.getElementById('btnCutoff').disabled = true;
-            
-            const btnNormal = document.getElementById('btnNormal');
-            const btnCutoff = document.getElementById('btnCutoff');
             
             try {
                 const url = `https://api.thingspeak.com/update?api_key=${WRITE_API_KEY}&field6=${command}`;
@@ -435,27 +554,14 @@
                 if (result && parseInt(result) > 0) {
                     const message = command === 1 ? '⚠️ Perintah CUT OFF terkirim!' : '✅ Perintah NORMAL terkirim!';
                     alert(message);
-                    
-                    // Animasi feedback
-                    if (command === 1) {
-                        btnCutoff.style.transform = 'scale(0.95)';
-                        setTimeout(() => btnCutoff.style.transform = '', 200);
-                    } else {
-                        btnNormal.style.transform = 'scale(0.95)';
-                        setTimeout(() => btnNormal.style.transform = '', 200);
-                    }
-                    
-                    // Tunggu 3 detik lalu refresh status
                     setTimeout(() => updateDashboard(), 3000);
                 } else {
                     alert('❌ Gagal mengirim perintah. Coba lagi.');
                 }
             } catch (error) {
-                console.error('Error sending command:', error);
-                alert('❌ Error koneksi. Periksa internet Anda.');
+                alert('❌ Error koneksi.');
             }
             
-            // Enable buttons kembali
             setTimeout(() => {
                 document.getElementById('btnNormal').disabled = false;
                 document.getElementById('btnCutoff').disabled = false;
@@ -464,10 +570,49 @@
         }
         
         // ============================================
-        // AUTO REFRESH (SETIAP 10 DETIK)
+        // RESET PETA (KEMBALI KE MARKER)
+        // ============================================
+        function resetMap() {
+            if (currentMarker) {
+                const pos = currentMarker.getLatLng();
+                map.setView(pos, 19);
+            } else {
+                map.setView([-7.82364, 110.39971], 19);
+            }
+        }
+        
+        // ============================================
+        // TOGGLE AUTO FOLLOW
+        // ============================================
+        function toggleAutoFollow() {
+            autoFollow = !autoFollow;
+            const btn = document.getElementById('followBtn');
+            if (autoFollow) {
+                btn.innerHTML = '📍 Auto Follow: ON';
+                btn.className = 'btn btn-primary';
+                // Langsung ikuti posisi marker
+                if (currentMarker) {
+                    map.setView(currentMarker.getLatLng(), 19);
+                }
+            } else {
+                btn.innerHTML = '📍 Auto Follow: OFF';
+                btn.className = 'btn btn-secondary';
+            }
+        }
+        
+        // ============================================
+        // EVENT LISTENER
+        // ============================================
+        document.getElementById('btnNormal').addEventListener('click', () => sendRelayCommand(0));
+        document.getElementById('btnCutoff').addEventListener('click', () => sendRelayCommand(1));
+        document.getElementById('resetBtn').addEventListener('click', resetMap);
+        document.getElementById('followBtn').addEventListener('click', toggleAutoFollow);
+        
+        // ============================================
+        // START DASHBOARD
         // ============================================
         updateDashboard();
-        setInterval(updateDashboard, 10000);
+        setInterval(updateDashboard, 10000);  // Update tiap 10 detik
     </script>
 </body>
 </html>
