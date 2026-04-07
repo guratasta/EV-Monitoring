@@ -1,207 +1,473 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>EV Tracking Pro</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <style>
-    body { margin:0; padding:0; }
-    #map { height: 100vh; }
-
-    #info {
-      position: absolute;
-      bottom: 20px;
-      left: 10px;
-      background: white;
-      padding: 12px;
-      z-index: 1000;
-      border-radius: 8px;
-      font-size: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      line-height: 1.6;
-    }
-
-    #toggleFollow {
-      position:absolute;
-      top:10px;
-      right:10px;
-      z-index:1000;
-      padding:10px;
-      background:white;
-      border:none;
-      border-radius:5px;
-      cursor:pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GPS Tracker - ESP32 ThingSpeak</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            border-radius: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        #map {
+            height: 450px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 2px solid #0f3460;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .card .label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card .value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        
+        .card .unit {
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+        
+        .soc-bar {
+            background: #0f3460;
+            border-radius: 20px;
+            height: 8px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .soc-fill {
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 20px;
+        }
+        
+        .relay-panel {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .relay-status {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .status-normal {
+            background: #00ff8844;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+        
+        .status-cutoff {
+            background: #ff444444;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 8px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .btn-normal {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+        
+        .btn-cutoff {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-text {
+            background: #0f0f1a;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            text-align: center;
+            font-family: monospace;
+        }
+        
+        .last-update {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 10px;
+            opacity: 0.6;
+        }
+        
+        @media (max-width: 600px) {
+            .card .value {
+                font-size: 1.2rem;
+            }
+            .btn {
+                padding: 8px 20px;
+                margin: 5px;
+            }
+            #map {
+                height: 350px;
+            }
+        }
+        
+        .vehicle-marker {
+            background: #ff4444;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 0 10px rgba(255,68,68,0.8);
+        }
+    </style>
 </head>
-
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 ESP32 GPS Tracker</h1>
+            <p>Real-time monitoring via ThingSpeak</p>
+        </div>
+        
+        <!-- Peta -->
+        <div id="map"></div>
+        
+        <!-- Dashboard Cards -->
+        <div class="dashboard">
+            <div class="card">
+                <div class="label">📍 Latitude</div>
+                <div class="value" id="lat">---</div>
+            </div>
+            <div class="card">
+                <div class="label">📍 Longitude</div>
+                <div class="value" id="lng">---</div>
+            </div>
+            <div class="card">
+                <div class="label">🔋 Tegangan</div>
+                <div class="value" id="voltage">--- <span class="unit">V</span></div>
+            </div>
+            <div class="card">
+                <div class="label">⚡ Arus</div>
+                <div class="value" id="current">--- <span class="unit">A</span></div>
+            </div>
+            <div class="card">
+                <div class="label">📊 State of Charge</div>
+                <div class="value" id="soc">--- <span class="unit">%</span></div>
+                <div class="soc-bar"><div class="soc-fill" id="socFill"></div></div>
+            </div>
+            <div class="card">
+                <div class="label">📏 Jarak Total</div>
+                <div class="value" id="distance">--- <span class="unit">km</span></div>
+            </div>
+        </div>
+        
+        <!-- Relay Control Panel -->
+        <div class="relay-panel">
+            <div class="relay-status" id="relayStatus">⚪ Memuat status...</div>
+            <div>
+                <button class="btn btn-normal" id="btnNormal" onclick="sendRelayCommand(0)">🔋 NORMAL</button>
+                <button class="btn btn-cutoff" id="btnCutoff" onclick="sendRelayCommand(1)">⚠️ CUT OFF</button>
+            </div>
+            <div class="info-text" style="margin-top: 12px;">
+                💡 <strong>Catatan:</strong> Perintah akan dieksekusi ESP32 dalam 5-15 detik
+            </div>
+        </div>
+        
+        <div class="last-update" id="lastUpdate">
+            Terakhir update: --:--:--
+        </div>
+    </div>
 
-<div id="map"></div>
-
-<div id="info">
-  Status : - <br>
-  Jarak  : 0 km <br>
-  Speed  : 0 km/h <br>
-  Waktu  : - <br>
-  EV     : EV-001
-</div>
-
-<button id="toggleFollow">Auto Follow: ON</button>
-
-<script>
-
-// ================= INIT =================
-var map = L.map('map').setView([-7.8, 110.36], 13);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap'
-}).addTo(map);
-
-var polyline = L.polyline([], {color: 'red', weight: 4}).addTo(map);
-
-var marker = L.marker([-7.8, 110.36]).addTo(map)
-  .bindTooltip("EV-001", {permanent: true, direction: "top"});
-
-// ================= VARIABLE =================
-let autoFollow = true;
-let currentPosition = null;
-let lastTime = null;
-let totalDistance = 0;
-
-// ================= TOGGLE =================
-document.getElementById("toggleFollow").onclick = function() {
-  autoFollow = !autoFollow;
-  this.innerText = "Auto Follow: " + (autoFollow ? "ON" : "OFF");
-};
-
-// ================= JAM REALTIME =================
-function getTimeNow() {
-  let now = new Date();
-  return now.toLocaleTimeString();
-}
-
-// ================= HAVERSINE =================
-function getDistance(p1, p2) {
-  let R = 6371;
-  let dLat = (p2[0]-p1[0]) * Math.PI/180;
-  let dLon = (p2[1]-p1[1]) * Math.PI/180;
-
-  let a =
-    Math.sin(dLat/2)**2 +
-    Math.cos(p1[0]*Math.PI/180) *
-    Math.cos(p2[0]*Math.PI/180) *
-    Math.sin(dLon/2)**2;
-
-  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
-// ================= SMOOTH =================
-function animateMarker(start, end, duration = 2000) {
-  let startTime = Date.now();
-
-  function animate() {
-    let progress = (Date.now() - startTime) / duration;
-    if (progress > 1) progress = 1;
-
-    let lat = start[0] + (end[0]-start[0]) * progress;
-    let lon = start[1] + (end[1]-start[1]) * progress;
-
-    marker.setLatLng([lat, lon]);
-
-    if (autoFollow) {
-      map.setView([lat, lon], map.getZoom());
-    }
-
-    if (progress < 1) requestAnimationFrame(animate);
-  }
-
-  animate();
-}
-
-// ================= UPDATE =================
-async function updateMap() {
-  try {
-    const res = await fetch("https://api.thingspeak.com/channels/3317591/feeds.json?results=50");
-    const data = await res.json();
-
-    let path = [];
-
-    data.feeds.forEach(d => {
-      if (d.field5 && d.field6) {
-        path.push([
-          parseFloat(d.field5),
-          parseFloat(d.field6)
-        ]);
-      }
-    });
-
-    if (path.length === 0) return;
-
-    let newPoint = path[path.length - 1];
-    polyline.setLatLngs(path);
-
-    if (!currentPosition) {
-      currentPosition = newPoint;
-      marker.setLatLng(newPoint);
-      lastTime = Date.now();
-      return;
-    }
-
-    // ================= HITUNG =================
-    let now = Date.now();
-    let timeDiff = (now - lastTime) / 1000; // detik
-    let dist = getDistance(currentPosition, newPoint);
-
-    let speed = 0;
-    let status = "STOP";
-
-    if (dist > 0.003) {
-      totalDistance += dist;
-      speed = (dist / timeDiff) * 3600;
-      status = "JALAN";
-    }
-
-    lastTime = now;
-
-    // ================= UPDATE UI =================
-    document.getElementById("info").innerHTML =
-      "Status : " + status + "<br>" +
-      "Jarak  : " + totalDistance.toFixed(3) + " km<br>" +
-      "Speed  : " + speed.toFixed(1) + " km/h<br>" +
-      "Waktu  : " + getTimeNow() + "<br>" +
-      "EV     : EV-001";
-
-    // ================= ANIMASI =================
-    animateMarker(currentPosition, newPoint);
-    currentPosition = newPoint;
-
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-// ================= REALTIME =================
-setInterval(() => {
-  updateMap();
-}, 5000);
-
-// update jam tiap detik
-setInterval(() => {
-  document.getElementById("info").innerHTML =
-    document.getElementById("info").innerHTML.replace(
-      /Waktu\s*:.*<br>/,
-      "Waktu  : " + getTimeNow() + "<br>"
-    );
-}, 1000);
-
-</script>
-
+    <script>
+        // ============================================
+        // KONFIGURASI THINGSPEAK
+        // ============================================
+        const CHANNEL_ID = 3330545;
+        const READ_API_KEY = "UWVN0Q1WNID8SC3H";
+        const WRITE_API_KEY = "WE3FE1YMTHG8RKS9";
+        
+        // ============================================
+        // INISIALISASI PETA
+        // ============================================
+        var map = L.map('map').setView([-6.2, 106.8], 13);
+        
+        // Tile layer OpenStreetMap
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Marker kustom
+        var vehicleIcon = L.divIcon({
+            html: '<div style="background: #ff4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(255,68,68,0.8);"></div>',
+            iconSize: [30, 30],
+            className: 'custom-marker'
+        });
+        
+        var currentMarker = null;
+        var routeLine = null;
+        var routePoints = [];
+        
+        // ============================================
+        // AMBIL DATA DARI THINGSPEAK
+        // ============================================
+        async function fetchData() {
+            try {
+                const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds/last.json?api_key=${READ_API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                return {
+                    lat: parseFloat(data.field1),
+                    lng: parseFloat(data.field2),
+                    voltage: parseFloat(data.field3).toFixed(1),
+                    current: parseFloat(data.field4).toFixed(2),
+                    soc: parseFloat(data.field5).toFixed(0),
+                    relayStatus: parseInt(data.field7),
+                    distance: parseFloat(data.field8).toFixed(2),
+                    createdAt: data.created_at
+                };
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+        
+        // ============================================
+        // AMBIL DATA HISTORY UNTUK RUTE
+        // ============================================
+        async function fetchHistory() {
+            try {
+                const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=100`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const points = [];
+                data.feeds.forEach(feed => {
+                    const lat = parseFloat(feed.field1);
+                    const lng = parseFloat(feed.field2);
+                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                        points.push([lat, lng]);
+                    }
+                });
+                return points;
+            } catch (error) {
+                console.error('Error fetching history:', error);
+                return [];
+            }
+        }
+        
+        // ============================================
+        // UPDATE TAMPILAN
+        // ============================================
+        async function updateDashboard() {
+            const data = await fetchData();
+            if (!data) return;
+            
+            // Update cards
+            document.getElementById('lat').innerHTML = data.lat.toFixed(6);
+            document.getElementById('lng').innerHTML = data.lng.toFixed(6);
+            document.getElementById('voltage').innerHTML = `${data.voltage} <span class="unit">V</span>`;
+            document.getElementById('current').innerHTML = `${data.current} <span class="unit">A</span>`;
+            document.getElementById('soc').innerHTML = `${data.soc} <span class="unit">%</span>`;
+            document.getElementById('distance').innerHTML = `${data.distance} <span class="unit">km</span>`;
+            
+            // Update SOC bar
+            document.getElementById('socFill').style.width = `${data.soc}%`;
+            
+            // Update relay status
+            const relayDiv = document.getElementById('relayStatus');
+            if (data.relayStatus === 1) {
+                relayDiv.innerHTML = '⚠️ STATUS: CUT OFF (Relay Aktif)';
+                relayDiv.className = 'relay-status status-cutoff';
+            } else {
+                relayDiv.innerHTML = '✅ STATUS: NORMAL (Relak Nonaktif)';
+                relayDiv.className = 'relay-status status-normal';
+            }
+            
+            // Update last update time
+            if (data.createdAt) {
+                const date = new Date(data.createdAt);
+                document.getElementById('lastUpdate').innerHTML = `Terakhir update: ${date.toLocaleTimeString('id-ID')}`;
+            }
+            
+            // Update marker peta jika koordinat valid
+            if (data.lat !== 0 && data.lng !== 0 && !isNaN(data.lat)) {
+                if (currentMarker) {
+                    currentMarker.setLatLng([data.lat, data.lng]);
+                } else {
+                    currentMarker = L.marker([data.lat, data.lng], { icon: vehicleIcon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <b>📍 Lokasi Terkini</b><br>
+                            🔋 ${data.voltage} V | 📊 ${data.soc}%<br>
+                            ⚡ ${data.current} A | 📏 ${data.distance} km<br>
+                            🕐 ${new Date(data.createdAt).toLocaleTimeString('id-ID')}
+                        `);
+                }
+                
+                // Pindahkan peta ke lokasi terbaru (optional)
+                map.setView([data.lat, data.lng], 15);
+                currentMarker.openPopup();
+            }
+            
+            // Update rute perjalanan
+            const historyPoints = await fetchHistory();
+            if (historyPoints.length > 1) {
+                if (routeLine) {
+                    routeLine.setLatLngs(historyPoints);
+                } else {
+                    routeLine = L.polyline(historyPoints, {
+                        color: '#00d4ff',
+                        weight: 3,
+                        opacity: 0.8,
+                        smoothFactor: 1
+                    }).addTo(map);
+                }
+            }
+        }
+        
+        // ============================================
+        // KIRIM PERINTAH RELAY
+        // ============================================
+        var isSending = false;
+        
+        async function sendRelayCommand(command) {
+            if (isSending) {
+                alert('Tunggu, perintah sedang dikirim...');
+                return;
+            }
+            
+            isSending = true;
+            
+            // Disable buttons sementara
+            document.getElementById('btnNormal').disabled = true;
+            document.getElementById('btnCutoff').disabled = true;
+            
+            const btnNormal = document.getElementById('btnNormal');
+            const btnCutoff = document.getElementById('btnCutoff');
+            
+            try {
+                const url = `https://api.thingspeak.com/update?api_key=${WRITE_API_KEY}&field6=${command}`;
+                const response = await fetch(url);
+                const result = await response.text();
+                
+                if (result && parseInt(result) > 0) {
+                    const message = command === 1 ? '⚠️ Perintah CUT OFF terkirim!' : '✅ Perintah NORMAL terkirim!';
+                    alert(message);
+                    
+                    // Animasi feedback
+                    if (command === 1) {
+                        btnCutoff.style.transform = 'scale(0.95)';
+                        setTimeout(() => btnCutoff.style.transform = '', 200);
+                    } else {
+                        btnNormal.style.transform = 'scale(0.95)';
+                        setTimeout(() => btnNormal.style.transform = '', 200);
+                    }
+                    
+                    // Tunggu 3 detik lalu refresh status
+                    setTimeout(() => updateDashboard(), 3000);
+                } else {
+                    alert('❌ Gagal mengirim perintah. Coba lagi.');
+                }
+            } catch (error) {
+                console.error('Error sending command:', error);
+                alert('❌ Error koneksi. Periksa internet Anda.');
+            }
+            
+            // Enable buttons kembali
+            setTimeout(() => {
+                document.getElementById('btnNormal').disabled = false;
+                document.getElementById('btnCutoff').disabled = false;
+                isSending = false;
+            }, 2000);
+        }
+        
+        // ============================================
+        // AUTO REFRESH (SETIAP 10 DETIK)
+        // ============================================
+        updateDashboard();
+        setInterval(updateDashboard, 10000);
+    </script>
 </body>
 </html>
