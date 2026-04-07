@@ -28,7 +28,7 @@
             padding: 15px;
         }
         
-        /* Header */
+        /* Header - Background Gelap */
         .header {
             display: flex;
             justify-content: space-between;
@@ -84,18 +84,7 @@
             transform: scale(1.02);
         }
         
-        .btn-active {
-            background: #00ff88;
-            color: #1a1a2e;
-            box-shadow: 0 0 10px #00ff88;
-        }
-        
-        .btn-inactive {
-            background: #444;
-            color: #aaa;
-        }
-        
-        /* Map */
+        /* Map - Peta TERANG */
         #map {
             height: 450px;
             border-radius: 15px;
@@ -103,7 +92,7 @@
             border: 2px solid #0f3460;
         }
         
-        /* Stats Grid */
+        /* Stats Grid - Background Gelap */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -136,7 +125,7 @@
             opacity: 0.6;
         }
         
-        /* Gauge Cards */
+        /* Gauge Cards - Background Gelap */
         .gauge-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -176,7 +165,7 @@
             transition: width 0.3s ease;
         }
         
-        /* Relay Panel */
+        /* Relay Panel - Background Gelap */
         .relay-panel {
             background: #16213e;
             padding: 15px;
@@ -267,7 +256,7 @@
             </div>
         </div>
         
-        <!-- Map -->
+        <!-- Map (TERANG) -->
         <div id="map"></div>
         
         <!-- Stats Grid -->
@@ -333,14 +322,13 @@
         const WRITE_API_KEY = "WE3FE1YMTHG8RKS9";
         
         // ============================================
-        // INISIALISASI PETA (ZOOM 19)
+        // INISIALISASI PETA (TERANG - OpenStreetMap)
         // ============================================
         var map = L.map('map').setView([-7.82364, 110.39971], 19);
         
-        // Tile layer (gelap, cocok dengan tema)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
-            subdomains: 'abcd',
+        // Tile layer TERANG (OpenStreetMap standar)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 20
         }).addTo(map);
         
@@ -350,14 +338,42 @@
         var currentMarker = null;
         var routeLine = null;
         var autoFollow = true;  // DEFAULT ON
-        var historyPoints = [];
+        var lastLat = null;
+        var lastLng = null;
+        var lastTimestamp = null;
+        var estimatedSpeed = 0;
         
-        // Icon marker kustom
+        // Icon marker kustom (warna hijau terang)
         var vehicleIcon = L.divIcon({
             html: '<div style="background: #00ff88; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #00ff88;"></div>',
             iconSize: [26, 26],
             className: 'vehicle-marker'
         });
+        
+        // ============================================
+        // FUNGSI HITUNG KECEPATAN (dari perubahan posisi)
+        // ============================================
+        function calculateSpeed(lat1, lon1, lat2, lon2, timeDiffSeconds) {
+            if (!lat1 || !lon1 || !lat2 || !lon2 || timeDiffSeconds <= 0) return 0;
+            
+            // Rumus Haversine untuk jarak dalam km
+            const toRad = (deg) => deg * Math.PI / 180;
+            const R = 6371; // Radius bumi dalam km
+            
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distanceKm = R * c;
+            
+            // Kecepatan = jarak / waktu (jam)
+            const timeHours = timeDiffSeconds / 3600;
+            const speed = distanceKm / timeHours;
+            
+            return speed;
+        }
         
         // ============================================
         // AMBIL DATA DARI THINGSPEAK
@@ -425,14 +441,6 @@
                         lineCap: 'round',
                         lineJoin: 'round'
                     }).addTo(map);
-                    
-                    // Tambahkan tooltip jarak total (akan diupdate nanti)
-                    const totalDist = document.getElementById('distance').innerText;
-                    routeLine.bindTooltip(`📏 Total Jarak: ${totalDist} km`, { 
-                        permanent: false, 
-                        direction: 'top',
-                        className: 'distance-tooltip'
-                    });
                 }
             }
         }
@@ -447,18 +455,32 @@
             // Hitung Daya (Watt = Volt × Arus)
             const power = (data.voltage * data.current).toFixed(1);
             
+            // Hitung kecepatan dari perubahan posisi
+            if (lastLat !== null && lastLng !== null && lastTimestamp !== null && data.lat !== 0 && data.lng !== 0) {
+                const currentTime = new Date(data.createdAt).getTime();
+                const timeDiffSeconds = (currentTime - lastTimestamp) / 1000;
+                
+                if (timeDiffSeconds > 0 && timeDiffSeconds < 60) { // Maksimal 60 detik antar update
+                    estimatedSpeed = calculateSpeed(lastLat, lastLng, data.lat, data.lng, timeDiffSeconds);
+                    // Filter kecepatan tidak masuk akal (> 120 km/h)
+                    if (estimatedSpeed > 120) estimatedSpeed = 0;
+                }
+            }
+            
+            // Simpan posisi terakhir untuk perhitungan berikutnya
+            lastLat = data.lat;
+            lastLng = data.lng;
+            lastTimestamp = new Date(data.createdAt).getTime();
+            
             // Update stat cards
             document.getElementById('lat').innerHTML = data.lat.toFixed(6);
             document.getElementById('lng').innerHTML = data.lng.toFixed(6);
+            document.getElementById('speed').innerHTML = `${estimatedSpeed.toFixed(1)} <span class="stat-unit">km/h</span>`;
             document.getElementById('distance').innerHTML = `${data.distance.toFixed(2)} <span class="stat-unit">km</span>`;
             document.getElementById('power').innerHTML = `${power} <span class="stat-unit">W</span>`;
             document.getElementById('voltage').innerHTML = `${data.voltage.toFixed(1)} <span class="stat-unit">V</span>`;
             document.getElementById('current').innerHTML = `${data.current.toFixed(2)} <span class="stat-unit">A</span>`;
             document.getElementById('soc').innerHTML = `${data.soc.toFixed(0)} <span class="stat-unit">%</span>`;
-            
-            // Update kecepatan (dari GPS, tidak ada di ThingSpeak? Gunakan perkiraan dari perubahan posisi)
-            // Karena field 9 tidak ada, kita skip atau estimasi
-            document.getElementById('speed').innerHTML = `--- <span class="stat-unit">km/h</span>`;
             
             // Progress bars
             const voltPercent = (data.voltage / 84) * 100;
@@ -498,6 +520,7 @@
                         🔋 ${data.voltage.toFixed(1)} V | 📊 ${data.soc.toFixed(0)}%<br>
                         ⚡ ${data.current.toFixed(2)} A | 💡 ${power} Watt<br>
                         📏 ${data.distance.toFixed(2)} km<br>
+                        ⚡ ${estimatedSpeed.toFixed(1)} km/h<br>
                         🕐 ${new Date(data.createdAt).toLocaleTimeString('id-ID')}
                     `);
                 } else {
@@ -507,7 +530,8 @@
                             <b>📍 EV 002</b><br>
                             🔋 ${data.voltage.toFixed(1)} V | 📊 ${data.soc.toFixed(0)}%<br>
                             ⚡ ${data.current.toFixed(2)} A | 💡 ${power} Watt<br>
-                            📏 ${data.distance.toFixed(2)} km
+                            📏 ${data.distance.toFixed(2)} km<br>
+                            ⚡ ${estimatedSpeed.toFixed(1)} km/h
                         `);
                 }
                 
