@@ -92,10 +92,10 @@
             border: 2px solid #0f3460;
         }
         
-        /* Stats Grid - Background Gelap */
+        /* Stats Grid - Background Gelap (6 card) */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 12px;
             margin-bottom: 15px;
         }
@@ -108,21 +108,32 @@
         }
         
         .stat-label {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             opacity: 0.7;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         
         .stat-value {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: bold;
             margin-top: 5px;
         }
         
         .stat-unit {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             opacity: 0.6;
+        }
+        
+        /* Status ESP32 Online/Offline */
+        .status-online {
+            color: #00ff88;
+            text-shadow: 0 0 5px #00ff88;
+        }
+        
+        .status-offline {
+            color: #ff4444;
+            text-shadow: 0 0 5px #ff4444;
         }
         
         /* Gauge Cards - Background Gelap */
@@ -259,7 +270,7 @@
         <!-- Map (TERANG) -->
         <div id="map"></div>
         
-        <!-- Stats Grid -->
+        <!-- Stats Grid (6 Card: Lat, Lon, Speed, Distance, Power, Status ESP32) -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">📍 Latitude</div>
@@ -280,6 +291,10 @@
             <div class="stat-card">
                 <div class="stat-label">⚡ Daya</div>
                 <div class="stat-value" id="power">--- <span class="stat-unit">Watt</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">📡 ESP32 Status</div>
+                <div class="stat-value" id="espStatus">---</div>
             </div>
         </div>
         
@@ -343,12 +358,12 @@
         var lastTimestamp = null;
         var estimatedSpeed = 0;
         
-        // Icon marker kustom (warna hijau terang)
-       var vehicleIcon = L.divIcon({
-    html: '<div style="background: #1a3a6a; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #1a3a6a;"></div>',
-    iconSize: [26, 26],
-    className: 'vehicle-marker'
-});
+        // Icon marker kustom (warna biru tua)
+        var vehicleIcon = L.divIcon({
+            html: '<div style="background: #1a3a6a; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #1a3a6a;"></div>',
+            iconSize: [26, 26],
+            className: 'vehicle-marker'
+        });
         
         // ============================================
         // FUNGSI HITUNG KECEPATAN (dari perubahan posisi)
@@ -425,7 +440,7 @@
         }
         
         // ============================================
-        // UPDATE GARIS TRACK (WARNA HIJAU)
+        // UPDATE GARIS TRACK (WARNA MERAH TRANSPARAN)
         // ============================================
         async function updateRoute() {
             const points = await fetchHistory();
@@ -433,14 +448,14 @@
                 if (routeLine) {
                     routeLine.setLatLngs(points);
                 } else {
-                   routeLine = L.polyline(points, {
-                color: '#ff4444',
-                weight: 4,
-                opacity: 0.5,
-                smoothFactor: 1,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
+                    routeLine = L.polyline(points, {
+                        color: '#ff4444',
+                        weight: 4,
+                        opacity: 0.5,
+                        smoothFactor: 1,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
                 }
             }
         }
@@ -472,12 +487,40 @@
             lastLng = data.lng;
             lastTimestamp = new Date(data.createdAt).getTime();
             
+            // ============================================
+            // STATUS ESP32 ONLINE/OFFLINE
+            // ============================================
+            const now = new Date().getTime();
+            const lastUpdateTime = new Date(data.createdAt).getTime();
+            const timeDiffSeconds = (now - lastUpdateTime) / 1000;
+            
+            let espStatusText = "";
+            let espStatusClass = "";
+            
+            if (timeDiffSeconds <= 30) {
+                espStatusText = "🟢 ONLINE";
+                espStatusClass = "status-online";
+            } else if (timeDiffSeconds <= 60) {
+                espStatusText = "🟡 WARNING";
+                espStatusClass = "status-offline";
+            } else {
+                espStatusText = "🔴 OFFLINE";
+                espStatusClass = "status-offline";
+            }
+            
             // Update stat cards
             document.getElementById('lat').innerHTML = data.lat.toFixed(6);
             document.getElementById('lng').innerHTML = data.lng.toFixed(6);
             document.getElementById('speed').innerHTML = `${estimatedSpeed.toFixed(1)} <span class="stat-unit">km/h</span>`;
             document.getElementById('distance').innerHTML = `${data.distance.toFixed(2)} <span class="stat-unit">km</span>`;
             document.getElementById('power').innerHTML = `${power} <span class="stat-unit">W</span>`;
+            
+            // Update status ESP32 dengan warna
+            const espStatusElement = document.getElementById('espStatus');
+            espStatusElement.innerHTML = espStatusText;
+            espStatusElement.className = `stat-value ${espStatusClass}`;
+            
+            // Update gauge
             document.getElementById('voltage').innerHTML = `${data.voltage.toFixed(1)} <span class="stat-unit">V</span>`;
             document.getElementById('current').innerHTML = `${data.current.toFixed(2)} <span class="stat-unit">A</span>`;
             document.getElementById('soc').innerHTML = `${data.soc.toFixed(0)} <span class="stat-unit">%</span>`;
