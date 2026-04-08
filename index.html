@@ -344,11 +344,11 @@
         var estimatedSpeed = 0;
         
         // Icon marker kustom (warna hijau terang)
-        var vehicleIcon = L.divIcon({
-            html: '<div style="background: #00ff88; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #00ff88;"></div>',
-            iconSize: [26, 26],
-            className: 'vehicle-marker'
-        });
+       var vehicleIcon = L.divIcon({
+    html: '<div style="background: #1a3a6a; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px #1a3a6a;"></div>',
+    iconSize: [26, 26],
+    className: 'vehicle-marker'
+});
         
         // ============================================
         // FUNGSI HITUNG KECEPATAN (dari perubahan posisi)
@@ -433,14 +433,14 @@
                 if (routeLine) {
                     routeLine.setLatLngs(points);
                 } else {
-                    routeLine = L.polyline(points, {
-                        color: '#00ff88',
-                        weight: 4,
-                        opacity: 0.9,
-                        smoothFactor: 1,
-                        lineCap: 'round',
-                        lineJoin: 'round'
-                    }).addTo(map);
+                   routeLine = L.polyline(points, {
+                color: '#ff4444',
+                weight: 4,
+                opacity: 0.5,
+                smoothFactor: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
                 }
             }
         }
